@@ -1,0 +1,217 @@
+/* =========================================================================
+   NEXUS MASTERCLASS STYLESHEET (LEGENDARY EDITION)
+   ========================================================================= */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
+
+/* Config Variables */
+:root {
+    --font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    
+    /* Cosmic Theme variables (Image 3 Style) */
+    --panel-bg: rgba(255, 255, 255, 0.45);
+    --panel-border: rgba(99, 102, 241, 0.12);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --neon-glow: rgba(99, 102, 241, 0.15);
+    
+    /* Bubble configurations (Image 1 Style) */
+    --bubble-in-bg: #f3f4f6;
+    --bubble-in-text: #0f172a;
+    --bubble-out-bg: linear-gradient(135deg, #4f46e5 0%, #312e81 100%);
+    --bubble-out-text: #ffffff;
+    
+    --transition-speed: 0.3s;
+    --blur-strength: 28px;
+}
+
+.dark {
+    --panel-bg: rgba(7, 5, 20, 0.45);
+    --panel-border: rgba(99, 102, 241, 0.16);
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --neon-glow: rgba(99, 102, 241, 0.35);
+    
+    --bubble-in-bg: rgba(21, 17, 50, 0.7);
+    --bubble-in-text: #f1f5f9;
+    --bubble-out-bg: linear-gradient(135deg, #6366f1 0%, #4338ca 100%);
+    --bubble-out-text: #ffffff;
+}
+
+* {
+    font-family: var(--font-family);
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    height: 100vh;
+    width: 100vw;
+    margin: 0;
+    padding: 0;
+    overscroll-behavior-y: contain;
+    overflow: hidden;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+/* Thin micro scrollbar */
+::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(99, 102, 241, 0.2);
+    border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.45);
+}
+
+/* =========================================================================
+   GLASS PANELS & CARDS (Image 3 Style)
+   ========================================================================= */
+.glass-panel {
+    background: var(--panel-bg);
+    backdrop-filter: blur(var(--blur-strength));
+    -webkit-backdrop-filter: blur(var(--blur-strength));
+    border: 1px solid var(--panel-border);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.12), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .glass-panel {
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4), 
+                0 0 30px var(--neon-glow), 
+                inset 0 1px 1px rgba(255, 255, 255, 0.08);
+}
+
+/* =========================================================================
+   MESSAGES & SOUNDWAVE TRACKS (Image 1 & 2 Style)
+   ========================================================================= */
+.message-bubble {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: transform var(--transition-speed) cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.message-bubble:hover {
+    transform: scale(1.015);
+}
+
+.message-bubble-in {
+    background: var(--bubble-in-bg) !important;
+    color: var(--bubble-in-text) !important;
+    border: 1px solid var(--panel-border);
+    border-bottom-left-radius: 6px !important;
+}
+
+.message-bubble-out {
+    background: var(--bubble-out-bg) !important;
+    color: var(--bubble-out-text) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom-right-radius: 6px !important;
+    box-shadow: 0 12px 24px rgba(99, 102, 241, 0.15);
+}
+
+/* Custom Audio Waveform Animation Columns */
+@keyframes waveAnimation {
+    0%, 100% {
+        transform: scaleY(0.45);
+    }
+    50% {
+        transform: scaleY(1.2);
+    }
+}
+.soundwave-bar {
+    transform-origin: center;
+    transition: background-color var(--transition-speed);
+}
+.voice-playing .soundwave-bar {
+    animation: waveAnimation 1s ease-in-out infinite;
+}
+.soundwave-bar:nth-child(2) { animation-delay: 0.1s; }
+.soundwave-bar:nth-child(3) { animation-delay: 0.2s; }
+.soundwave-bar:nth-child(4) { animation-delay: 0.15s; }
+.soundwave-bar:nth-child(5) { animation-delay: 0.3s; }
+.soundwave-bar:nth-child(6) { animation-delay: 0.1s; }
+.soundwave-bar:nth-child(7) { animation-delay: 0.25s; }
+.soundwave-bar:nth-child(8) { animation-delay: 0.15s; }
+
+/* =========================================================================
+   CALL OVERLAYS & HOLOGRAPHIC ANIMATIONS
+   ========================================================================= */
+#native-calling-overlay {
+    background: radial-gradient(circle at center, #0e0a30 0%, #03020a 100%);
+    box-shadow: inset 0 0 120px rgba(99, 102, 241, 0.15);
+}
+
+@keyframes holographicPulse {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.85;
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4), 
+                    0 0 0 10px rgba(99, 102, 241, 0.2);
+    }
+    100% {
+        transform: scale(1.4);
+        opacity: 0;
+        box-shadow: 0 0 0 35px rgba(99, 102, 241, 0), 
+                    0 0 0 70px rgba(99, 102, 241, 0);
+    }
+}
+.animate-ripple {
+    animation: holographicPulse 2.8s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+@keyframes smoothFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+}
+.animate-float {
+    animation: smoothFloat 4s ease-in-out infinite;
+}
+
+/* Dropdown layout sliders */
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px) scale(0.96);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+.animate-slide-up {
+    animation: slideInUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ZEGOCLOUD Prebuilt custom styling overrides to fit theme */
+#zego-call-render {
+    width: 100%;
+    height: 100%;
+    min-height: 450px;
+}
+
+/* =========================================================================
+   RESPONSIVE DESIGN (Adaptive Desktop vs Mobile UI/UX)
+   ========================================================================= */
+@media (max-width: 768px) {
+    body {
+        background: var(--bg-cosmic) !important;
+    }
+    
+    #app-screen {
+        max-width: 100% !important;
+        height: 100% !important;
+        border: none !important;
+        border-radius: 0px !important;
+    }
+
+    .message-bubble {
+        max-width: 88% !important;
+    }
+}

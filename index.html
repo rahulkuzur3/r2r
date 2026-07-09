@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Nexus - Premium Real-Time Chat</title>
+    
+    <!-- DOM Safeguard: Prevents style injectors from failing during SDK initialization -->
+    <script id="nexus-head-marker"></script>
+
+    <!-- OneSignal Web Push SDK (v16) -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        dark: {
+                            950: '#03020a',
+                            900: '#070514',
+                            800: '#0f0c24',
+                            750: '#151132',
+                            700: '#1a163e'
+                        }
+                    },
+                    boxShadow: {
+                        'neon-brand': '0 0 20px rgba(99, 102, 241, 0.35)',
+                        'neon-glow': '0 0 30px rgba(79, 70, 229, 0.2)'
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="app.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- AWS SDK -->
+    <script src="https://sdk.amazonaws.com/js/aws-sdk-2.1200.0.min.js"></script>
+    <!-- ZEGOCLOUD Call Kit -->
+    <script src="https://unpkg.com/@zegocloud/zego-uikit-prebuilt/zego-uikit-prebuilt.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-slate-100 min-h-screen h-screen flex items-center justify-center font-sans overflow-hidden transition-colors duration-500 relative">
+
+    <!-- THEME BACKDROP GRADIENTS -->
+    <div class="fixed inset-0 bg-gradient-to-tr from-slate-100 via-indigo-50/20 to-purple-50/10 dark:from-dark-950 dark:via-dark-900 dark:to-purple-950/20 z-0"></div>
+    <div class="fixed top-[5%] left-[10%] w-[35rem] h-[35rem] bg-indigo-600/10 dark:bg-indigo-600/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
+    <div class="fixed bottom-[10%] right-[10%] w-[30rem] h-[35rem] bg-purple-600/10 dark:bg-purple-600/5 blur-[120px] rounded-full pointer-events-none z-0"></div>
+
+    <!-- AUTHENTICATION GUARD -->
+    <div id="auth-screen" class="fixed inset-0 z-50 flex items-center justify-center bg-dark-950/80 backdrop-blur-xl">
+        <div class="glass-panel w-full max-w-md p-10 rounded-[2rem] shadow-2xl border border-purple-500/20 text-center mx-4 relative overflow-hidden">
+            <div class="absolute -top-10 -right-10 w-40 h-40 bg-brand-500/15 rounded-full blur-3xl"></div>
+            
+            <!-- LOGO CONTAINER (Dynamically mounts image or falls back to icon) -->
+            <div id="login-logo-container" class="inline-flex items-center justify-center w-20 h-20 bg-brand-600/10 text-brand-500 rounded-[20px] mb-8 border border-brand-500/30 shadow-neon-brand animate-float overflow-hidden">
+                <i data-lucide="sparkles" class="w-10 h-10"></i>
+            </div>
+            
+            <!-- BRAND TITLE -->
+            <h1 id="login-brand-title" class="text-3xl font-black mb-3 tracking-tight bg-gradient-to-r from-brand-500 to-indigo-400 bg-clip-text text-transparent">NEXUS MESSAGING</h1>
+            <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm leading-relaxed">Enter the high-fidelity ecosystem. Connect with colleagues across secure, zero-trace R2 channels and video call rooms.</p>
+            <button id="btn-login" class="w-full py-4 px-6 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white font-semibold rounded-2xl flex items-center justify-center gap-3 transition-all transform hover:-translate-y-0.5 active:translate-y-0 shadow-lg shadow-brand-600/30">
+                <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.866-3.577-7.866-8s3.536-8 7.866-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.986 0-.745-.079-1.32-.176-1.714H12.24z"/>
+                </svg>
+                Continue with Google
+            </button>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-screen" class="hidden w-full h-full md:max-w-7xl md:h-[90vh] md:rounded-[32px] md:border md:border-slate-200/50 md:dark:border-purple-950/20 shadow-2xl glass-panel relative overflow-hidden flex z-10 transition-all duration-500">
+        
+        <!-- SIDEBAR NAVIGATION / LIST PANELS -->
+        <aside id="app-sidebar" class="w-full md:w-[26rem] flex flex-col border-r border-slate-200/50 dark:border-purple-950/20 bg-white/50 dark:bg-dark-900/30 backdrop-blur-2xl flex-shrink-0 relative z-20 h-full">
+            <!-- Sidebar Header -->
+            <div class="p-5 border-b border-slate-200/50 dark:border-purple-950/20 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <img id="current-user-avatar" class="w-12 h-12 rounded-[18px] border-2 border-brand-500/50 object-cover cursor-pointer shadow-neon-brand" src="" alt="Avatar">
+                        <span class="w-3.5 h-3.5 bg-green-500 border-2 border-white dark:border-dark-950 rounded-full absolute -bottom-1 -right-1 animate-pulse"></span>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 id="current-user-name" class="font-extrabold text-sm tracking-tight leading-tight truncate w-36">Loading...</h2>
+                        <span class="text-[11px] text-brand-400 font-bold uppercase tracking-wider">Online Presence</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1 bg-slate-100/60 dark:bg-dark-800/40 p-1 rounded-2xl border border-slate-200/20 dark:border-purple-950/30">
+                    <button id="btn-admin-panel" class="hidden p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-700 rounded-xl transition-colors" title="Admin Panel">
+                        <i data-lucide="shield" class="w-4.5 h-4.5 text-yellow-500"></i>
+                    </button>
+                    <button id="btn-toggle-theme" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-700 rounded-xl transition-colors">
+                        <i data-lucide="sun" class="w-4.5 h-4.5 block dark:hidden"></i>
+                        <i data-lucide="moon" class="w-4.5 h-4.5 hidden dark:block text-brand-400"></i>
+                    </button>
+                    <button id="btn-logout" class="p-2 text-red-500 hover:bg-red-500/15 rounded-xl transition-colors" title="Logout">
+                        <i data-lucide="log-out" class="w-4.5 h-4.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- STORIES BAR -->
+            <div class="p-4 border-b border-slate-200/50 dark:border-purple-950/20 overflow-x-auto">
+                <div id="stories-tray" class="flex gap-4 min-w-max px-1">
+                    <!-- Add Story Widget -->
+                    <div class="flex flex-col items-center gap-1.5 cursor-pointer relative group" id="btn-add-story">
+                        <div class="w-16 h-16 rounded-[22px] border-2 border-dashed border-purple-500/40 dark:border-purple-500/30 flex items-center justify-center bg-slate-100/50 dark:bg-dark-800/30 group-hover:border-brand-500 transition-all shadow-sm">
+                            <i data-lucide="plus" class="w-6 h-6 text-slate-500 dark:text-purple-400"></i>
+                        </div>
+                        <span class="text-[11px] font-bold text-slate-500">My Story</span>
+                        <input type="file" id="input-story-file" class="hidden" accept="image/*,video/*">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEARCH & TAB SELECTORS -->
+            <div class="p-5 flex flex-col gap-4">
+                <div class="relative group">
+                    <i data-lucide="search" class="w-4.5 h-4.5 text-slate-400 absolute left-3.5 top-1/2 transform -translate-y-1/2 group-focus-within:text-brand-500 transition-colors"></i>
+                    <input id="sidebar-search" type="text" placeholder="Search streams, users..." class="w-full pl-11 pr-4 py-3 text-sm bg-slate-100/60 dark:bg-dark-800/60 border border-slate-200/50 dark:border-purple-950/20 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-inner">
+                </div>
+                <div class="flex bg-slate-100/60 dark:bg-dark-800/60 p-1.5 rounded-[18px] border border-slate-200/50 dark:border-purple-950/20">
+                    <button id="tab-chats" class="flex-1 py-2 text-xs font-bold rounded-xl bg-white dark:bg-brand-600/90 shadow-md text-center transition-all">Chats</button>
+                    <button id="tab-groups" class="flex-1 py-2 text-xs font-bold rounded-xl text-slate-500 dark:text-slate-400 text-center transition-all">Groups</button>
+                    <button id="tab-users" class="flex-1 py-2 text-xs font-bold rounded-xl text-slate-500 dark:text-slate-400 text-center transition-all">People</button>
+                </div>
+            </div>
+
+            <!-- LIST CONTAINER -->
+            <div id="sidebar-list-container" class="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-purple-950/10 px-2 space-y-1">
+                <div class="skeleton-loader p-4 space-y-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 bg-slate-300 dark:bg-dark-800 rounded-2xl animate-pulse"></div>
+                        <div class="flex-1 space-y-2">
+                            <div class="h-4 bg-slate-300 dark:bg-dark-800 w-1/2 rounded-lg animate-pulse"></div>
+                            <div class="h-3 bg-slate-300 dark:bg-dark-800 w-3/4 rounded-lg animate-pulse"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FLOATING GROUP CREATE TRIGGER -->
+            <button id="btn-trigger-group-modal" class="absolute bottom-6 right-6 p-4.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all z-30" title="Create Group">
+                <i data-lucide="plus-circle" class="w-6 h-6"></i>
+            </button>
+        </aside>
+
+        <!-- CENTRAL CHAT WINDOW -->
+        <main id="chat-window" class="hidden md:flex flex-1 flex-col bg-slate-100/20 dark:bg-dark-900/10 relative h-full w-full">
+            <!-- DEFAULT / IDLE PANEL -->
+            <div id="chat-idle-state" class="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10 bg-slate-50/50 dark:bg-dark-950/50 backdrop-blur-xl">
+                <div class="w-28 h-28 bg-brand-500/10 text-brand-500 rounded-[2rem] flex items-center justify-center mb-6 border border-brand-500/20 shadow-neon-glow animate-pulse">
+                    <i data-lucide="sparkles" class="w-12 h-12"></i>
+                </div>
+                <h3 class="text-2xl font-black tracking-tight">Select a Workspace Stream</h3>
+                <p class="text-slate-500 dark:text-slate-400 max-w-sm mt-2 text-sm leading-relaxed">Join a shared discussion channel, invite teammates, or launch a video conference call from your people directory.</p>
+            </div>
+
+            <!-- ACTIVE CHAT VIEW -->
+            <div id="chat-active-state" class="hidden flex flex-col h-full w-full overflow-hidden bg-white/30 dark:bg-dark-950/15">
+                <!-- Chat Header -->
+                <header class="p-5 bg-white/60 dark:bg-dark-900/40 backdrop-blur-xl border-b border-slate-200/50 dark:border-purple-950/30 flex items-center justify-between">
+                    <div class="flex items-center min-w-0">
+                        <button id="btn-back-to-sidebar" class="md:hidden p-2 -ml-2 mr-2 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-800 rounded-xl transition-colors flex-shrink-0">
+                            <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        </button>
+                        <div class="flex items-center gap-3.5 cursor-pointer min-w-0" id="chat-header-info">
+                            <img id="active-target-avatar" class="w-11 h-11 rounded-[16px] object-cover border border-slate-200/55 dark:border-purple-950/35 flex-shrink-0 shadow-neon-brand" src="" alt="Target">
+                            <div class="min-w-0">
+                                <h3 id="active-target-name" class="font-extrabold text-sm leading-tight truncate">...</h3>
+                                <span id="active-target-status" class="text-xs text-slate-500 font-semibold block truncate">Offline</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 bg-slate-100/50 dark:bg-dark-800/40 p-1 rounded-2xl border border-slate-200/10 dark:border-purple-950/20">
+                        <button id="btn-call-voice" class="p-2.5 text-brand-500 hover:bg-brand-500/10 rounded-xl transition-colors" title="Voice Call">
+                            <i data-lucide="phone-call" class="w-5 h-5"></i>
+                        </button>
+                        <button id="btn-call-video" class="p-2.5 text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-colors" title="Video Call">
+                            <i data-lucide="video" class="w-5 h-5"></i>
+                        </button>
+                        <button id="btn-toggle-info" class="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-dark-700 rounded-xl transition-colors" title="Information">
+                            <i data-lucide="panel-right" class="w-5 h-5"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- PINNED MESSAGE ANCHOR -->
+                <div id="pinned-message-bar" class="hidden bg-brand-500/10 border-b border-brand-500/20 px-5 py-3 flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-2.5 text-brand-600 dark:text-brand-400 truncate">
+                        <i data-lucide="pin" class="w-4 h-4 flex-shrink-0 animate-bounce"></i>
+                        <span class="font-bold uppercase tracking-wider text-xs">Pinned:</span>
+                        <span id="pinned-message-text" class="truncate italic">Loading pinned content...</span>
+                    </div>
+                    <button id="btn-unpin-current" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-4.5 h-4.5"></i>
+                    </button>
+                </div>
+
+                <!-- MESSAGES CONTAINER -->
+                <div id="messages-scroller" class="flex-1 overflow-y-auto p-6 space-y-5">
+                    <!-- Loaded Message Bubbles -->
+                </div>
+
+                <!-- TYPING INDICATOR AREA -->
+                <div id="typing-indicator-bar" class="hidden px-6 py-2 text-xs text-brand-400 font-semibold italic flex items-center gap-2">
+                    <span class="flex gap-1"><span class="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce"></span><span class="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce delay-150"></span><span class="w-1.5 h-1.5 bg-brand-400 rounded-full animate-bounce delay-300"></span></span>
+                    <span id="typing-indicator-text"></span>
+                </div>
+
+                <!-- REPLY ATTACHMENT ANCHOR -->
+                <div id="reply-context-bar" class="hidden bg-slate-200/50 dark:bg-dark-800/60 border-t border-slate-300 dark:border-purple-950/30 px-6 py-2.5 flex items-center justify-between text-xs backdrop-blur-md">
+                    <div class="flex items-center gap-2.5 text-slate-600 dark:text-slate-300 truncate">
+                        <i data-lucide="corner-up-left" class="w-5 h-5 text-brand-500 flex-shrink-0"></i>
+                        <div class="min-w-0">
+                            <span class="font-extrabold block text-brand-500" id="reply-user-title">Reply to</span>
+                            <span id="reply-preview-text" class="truncate block opacity-80">Loading message preview...</span>
+                        </div>
+                    </div>
+                    <button id="btn-cancel-reply" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                        <i data-lucide="x" class="w-4.5 h-4.5"></i>
+                    </button>
+                </div>
+
+                <!-- INPUT CONTROL PANEL -->
+                <footer class="p-5 bg-white/60 dark:bg-dark-900/40 backdrop-blur-xl border-t border-slate-200/50 dark:border-purple-950/20 flex items-end gap-3.5 relative">
+                    <div class="relative">
+                        <button id="btn-attachment-toggle" class="p-3 text-slate-500 dark:text-purple-400 hover:bg-slate-200 dark:hover:bg-dark-750 rounded-2xl transition-all border border-slate-200/50 dark:border-purple-950/20">
+                            <i data-lucide="paperclip" class="w-5 h-5"></i>
+                        </button>
+                        <div id="attachment-menu" class="hidden absolute bottom-16 left-0 glass-panel bg-white dark:bg-dark-800 border border-slate-200 dark:border-purple-950/30 p-2.5 rounded-2xl shadow-2xl flex flex-col gap-1 w-48 z-50 animate-slide-up">
+                            <button id="btn-attach-image" class="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-brand-500/10 hover:text-brand-400 rounded-xl text-left font-semibold">
+                                <i data-lucide="image" class="w-4.5 h-4.5 text-blue-400"></i> Photo/Video
+                            </button>
+                            <button id="btn-attach-file" class="flex items-center gap-3 px-3 py-2.5 text-sm hover:bg-brand-500/10 hover:text-brand-400 rounded-xl text-left font-semibold">
+                                <i data-lucide="file-text" class="w-4.5 h-4.5 text-purple-400"></i> Document File
+                            </button>
+                            <input type="file" id="input-image-upload" accept="image/*,video/*" class="hidden">
+                            <input type="file" id="input-file-upload" accept=".pdf,.docx,.zip,.txt,.apk,.mp3,.mp4" class="hidden">
+                        </div>
+                    </div>
+
+                    <div class="relative">
+                        <button id="btn-emoji-toggle" class="p-3 text-slate-500 dark:text-purple-400 hover:bg-slate-200 dark:hover:bg-dark-750 rounded-2xl transition-all border border-slate-200/50 dark:border-purple-950/20">
+                            <i data-lucide="smile" class="w-5 h-5"></i>
+                        </button>
+                        <div id="emoji-picker-container" class="hidden absolute bottom-16 left-0 glass-panel bg-white dark:bg-dark-800 border border-slate-200 dark:border-purple-950/30 rounded-2xl shadow-2xl w-80 h-96 z-50 flex flex-col overflow-hidden animate-slide-up">
+                            <div class="p-2 border-b border-slate-200 dark:border-purple-950/30 flex bg-slate-100/50 dark:bg-dark-900/60">
+                                <button id="emoji-pick-tab" class="flex-1 py-1.5 text-xs font-bold rounded-lg bg-white dark:bg-dark-800 shadow-md text-center">Emojis</button>
+                                <button id="gif-pick-tab" class="flex-1 py-1.5 text-xs font-bold rounded-lg text-slate-500 text-center">GIFs / Stickers</button>
+                            </div>
+                            <div class="p-3">
+                                <input id="search-picker-input" type="text" placeholder="Search parameters..." class="w-full text-xs p-2.5 bg-slate-100 dark:bg-dark-900 border border-slate-200/40 dark:border-purple-950/30 rounded-xl outline-none">
+                            </div>
+                            <div id="emoji-scroll-content" class="flex-1 overflow-y-auto p-4 grid grid-cols-6 gap-3.5 text-2xl cursor-pointer select-none"></div>
+                            <div id="gif-scroll-content" class="hidden flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-3 cursor-pointer"></div>
+                        </div>
+                    </div>
+
+                    <textarea id="message-text-input" rows="1" placeholder="Compose message stream..." class="flex-1 max-h-36 min-h-[48px] py-3.5 px-5 text-sm bg-slate-100 dark:bg-dark-800/80 border border-slate-200/50 dark:border-purple-950/20 rounded-2xl focus:ring-2 focus:ring-brand-500 outline-none resize-none transition-all placeholder-slate-400 dark:placeholder-slate-500 shadow-inner"></textarea>
+
+                    <div class="flex items-center">
+                        <button id="btn-send-message" class="hidden p-3.5 bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white rounded-2xl shadow-lg hover:scale-105 active:scale-95 transition-all">
+                            <i data-lucide="send" class="w-5 h-5"></i>
+                        </button>
+                        <button id="btn-voice-record" class="p-3.5 bg-slate-200 dark:bg-dark-800 hover:bg-slate-300 dark:hover:bg-dark-750 text-slate-600 dark:text-purple-400 rounded-2xl transition-all relative border border-slate-200/50 dark:border-purple-950/20">
+                            <i data-lucide="mic" class="w-5 h-5"></i>
+                            <span id="voice-record-pulse" class="hidden absolute inset-0 rounded-2xl bg-red-500/25 animate-ping"></span>
+                        </button>
+                    </div>
+                </footer>
+            </div>
+        </main>
+
+        <!-- RIGHT DETAIL DRAWER -->
+        <aside id="info-drawer" class="hidden w-80 border-l border-slate-200/50 dark:border-purple-950/30 bg-white/60 dark:bg-dark-900/60 backdrop-blur-2xl flex-shrink-0 flex flex-col z-20">
+            <div class="p-5 border-b border-slate-200/50 dark:border-purple-950/30 flex items-center justify-between">
+                <h3 class="font-extrabold text-sm tracking-wider uppercase">Info Stream</h3>
+                <button id="btn-close-drawer" class="p-1.5 hover:bg-slate-200 dark:hover:bg-dark-800 rounded-xl">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6">
+                <div class="flex flex-col items-center text-center">
+                    <img id="drawer-user-avatar" class="w-24 h-24 rounded-[2rem] object-cover border-2 border-brand-500/60 mb-4 shadow-neon-brand" src="" alt="Avatar">
+                    <h4 id="drawer-user-name" class="font-black text-xl leading-snug">Target Username</h4>
+                    <p id="drawer-user-bio" class="text-xs text-slate-500 dark:text-slate-400 mt-1 italic font-medium">"No status set"</p>
+                </div>
+                <div class="space-y-4">
+                    <div class="flex border-b border-slate-200/50 dark:border-purple-950/20 pb-2 gap-4 text-sm font-bold">
+                        <button id="drawer-tab-starred" class="text-brand-500 hover:text-brand-600">Starred</button>
+                        <button id="drawer-tab-files" class="text-slate-500 hover:text-slate-600">Files</button>
+                    </div>
+                    <div id="drawer-tab-container" class="space-y-3 max-h-72 overflow-y-auto"></div>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- MODAL POPUPS -->
+
+    <!-- NATIVE CALLING INTERFACE OVERLAY -->
+    <div id="native-calling-overlay" class="hidden fixed inset-0 z-[110] flex flex-col items-center justify-center bg-dark-950/95 backdrop-blur-3xl text-white">
+        <!-- Visual Pulse Rings -->
+        <div class="relative flex items-center justify-center mb-8">
+            <div class="absolute w-44 h-44 bg-brand-500/10 rounded-full animate-ripple"></div>
+            <div class="absolute w-60 h-60 bg-brand-500/5 rounded-full animate-ripple delay-300"></div>
+            <img id="caller-avatar" class="relative w-36 h-36 rounded-[2.5rem] border-4 border-brand-500/50 object-cover shadow-2xl animate-float" src="https://api.dicebear.com/7.x/initials/svg?seed=Call" alt="Caller">
+        </div>
+        <h2 id="caller-name" class="text-3xl font-black mb-1">Nexus Connection</h2>
+        <p id="call-status-label" class="text-brand-400 font-bold uppercase tracking-widest text-xs animate-pulse">Establishing Signal...</p>
+
+        <!-- Call Controls -->
+        <div class="flex items-center gap-8 mt-12">
+            <!-- Decline button -->
+            <button id="btn-call-decline" class="p-5 bg-red-600 hover:bg-red-700 hover:scale-105 active:scale-95 text-white rounded-full shadow-lg shadow-red-600/30 transition-all flex items-center justify-center">
+                <i data-lucide="phone-off" class="w-8 h-8"></i>
+            </button>
+            <!-- Accept button -->
+            <button id="btn-call-accept" class="hidden p-5 bg-green-500 hover:bg-green-600 hover:scale-105 active:scale-95 text-white rounded-full shadow-lg shadow-green-500/30 transition-all flex items-center justify-center">
+                <i data-lucide="phone" class="w-8 h-8 animate-bounce"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- GROUP CREATOR MODAL -->
+    <div id="group-creator-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-lg p-6 rounded-[24px] shadow-2xl border border-white/10 mx-4">
+            <h2 class="text-xl font-bold mb-4">Create New Group Stream</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Group Subject / Name</label>
+                    <input id="input-group-name" type="text" placeholder="Development, Project Board..." class="w-full px-4 py-3 bg-slate-100 dark:bg-dark-800 border-0 rounded-xl focus:ring-2 focus:ring-brand-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-2">Invite Colleagues</label>
+                    <div id="group-user-selection-list" class="max-h-48 overflow-y-auto space-y-2 border border-slate-200 dark:border-purple-950/20 rounded-xl p-3"></div>
+                </div>
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-purple-950/20">
+                    <button id="btn-cancel-group" class="px-5 py-2.5 text-sm bg-slate-200 dark:bg-dark-800 hover:bg-slate-300 rounded-xl transition-all">Cancel</button>
+                    <button id="btn-confirm-group" class="px-5 py-2.5 text-sm bg-brand-600 hover:bg-brand-700 text-white rounded-xl font-semibold transition-all shadow-md">Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- STORY VIEWER MODAL -->
+    <div id="story-viewer-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-dark-950">
+        <div class="absolute top-4 left-4 flex items-center gap-3 z-50">
+            <img id="story-author-avatar" class="w-10 h-10 rounded-full border border-white/50 object-cover" src="" alt="Avatar">
+            <div>
+                <h4 id="story-author-name" class="text-white text-sm font-semibold">User Story</h4>
+                <span id="story-time" class="text-slate-400 text-xs">Just Now</span>
+            </div>
+        </div>
+        <button id="btn-close-story" class="absolute top-4 right-4 z-50 text-white hover:text-slate-300 p-2 rounded-full bg-black/40 backdrop-blur-md">
+            <i data-lucide="x" class="w-6 h-6"></i>
+        </button>
+        <div class="relative w-full max-w-lg h-full max-h-[85vh] flex items-center justify-center p-4">
+            <img id="story-media-image" class="hidden max-h-full max-w-full rounded-xl object-contain shadow-2xl" src="" alt="Story Photo">
+            <video id="story-media-video" class="hidden max-h-full max-w-full rounded-xl object-contain shadow-2xl" controls autoplay muted></video>
+        </div>
+        <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-md px-4 flex flex-col gap-4">
+            <div id="story-viewer-list-panel" class="hidden text-xs text-slate-300 bg-black/60 p-2 rounded-lg text-center backdrop-blur-md border border-white/5">
+                <span id="story-viewers-count">0 views</span> • Viewers: <span id="story-viewers-names"></span>
+            </div>
+            <div class="flex justify-around bg-black/40 backdrop-blur-md p-3 rounded-2xl border border-white/10">
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">❤️</button>
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">🔥</button>
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">😂</button>
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">😮</button>
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">😢</button>
+                <button class="story-react-btn text-2xl hover:scale-125 transition-transform">🎉</button>
+            </div>
+            <div class="flex gap-2">
+                <input id="input-story-reply" type="text" placeholder="Reply to this story..." class="flex-1 bg-white/10 hover:bg-white/15 focus:bg-white/25 text-white border-0 rounded-xl px-4 py-3 text-sm placeholder-slate-400 outline-none backdrop-blur-md">
+                <button id="btn-send-story-reply" class="bg-brand-600 hover:bg-brand-700 text-white p-3 rounded-xl shadow-lg transition-transform hover:scale-105">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL SYSTEM MODAL -->
+    <div id="admin-dashboard-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-4xl p-6 rounded-[24px] shadow-2xl border border-white/10 mx-4 flex flex-col h-[80vh]">
+            <div class="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-purple-950/20">
+                <div class="flex items-center gap-3">
+                    <div class="p-2 bg-red-500/10 text-red-500 rounded-lg"><i data-lucide="shield" class="w-6 h-6"></i></div>
+                    <div>
+                        <h2 class="text-xl font-bold">Nexus Administration Panel</h2>
+                        <p class="text-xs text-slate-500">Global system logs, user status directories, and usage charts.</p>
+                    </div>
+                </div>
+                <button id="btn-close-admin" class="p-1.5 hover:bg-slate-200 dark:hover:bg-dark-700 rounded-xl">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 py-4">
+                <div class="bg-slate-100/50 dark:bg-dark-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-purple-950/20 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Users</span>
+                    <h3 id="stat-users-count" class="text-2xl font-black mt-1">0</h3>
+                </div>
+                <div class="bg-slate-100/50 dark:bg-dark-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-purple-950/20 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Active Streams</span>
+                    <h3 id="stat-groups-count" class="text-2xl font-black mt-1">0</h3>
+                </div>
+                <div class="bg-slate-100/50 dark:bg-dark-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-purple-950/20 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Stories</span>
+                    <h3 id="stat-stories-count" class="text-2xl font-black mt-1">0</h3>
+                </div>
+                <div class="bg-slate-100/50 dark:bg-dark-800/30 p-4 rounded-2xl border border-slate-200/50 dark:border-purple-950/20 shadow-sm">
+                    <span class="text-xs text-slate-500 font-bold uppercase tracking-wider">Cloud Files</span>
+                    <h3 id="stat-files-count" class="text-2xl font-black mt-1">0</h3>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto min-h-0 border-t border-slate-200 dark:border-purple-950/20 pt-4">
+                <h3 class="text-sm font-bold uppercase text-slate-500 tracking-wider mb-3">User Status Directory</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-100/80 dark:bg-dark-800/80 text-slate-500">
+                            <tr>
+                                <th class="p-3 rounded-l-lg font-bold">User</th>
+                                <th class="p-3 font-bold">Email</th>
+                                <th class="p-3 font-bold">Registration Date</th>
+                                <th class="p-3 font-bold">Role</th>
+                                <th class="p-3 rounded-r-lg text-right font-bold">Moderation Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-user-rows" class="divide-y divide-slate-100 dark:divide-purple-950/10"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIDEO/AUDIO CALL OVERLAY CONTAINER -->
+    <div id="zego-call-container" class="hidden fixed inset-0 z-[90] flex items-center justify-center bg-dark-950/90 backdrop-blur-xl">
+        <div id="zego-call-inner" class="w-full max-w-5xl h-full max-h-[85vh] rounded-[24px] overflow-hidden shadow-2xl relative border border-white/10 shadow-neon-glow">
+            <button id="btn-terminate-call" class="absolute top-4 right-4 z-[99] bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg flex items-center gap-2">
+                <i data-lucide="phone-off" class="w-4 h-4"></i> Leave Session
+            </button>
+            <div id="zego-call-render" class="w-full h-full"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK Imports -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
